@@ -6,15 +6,34 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Minus, Plus, Trash2, ShoppingBag, CreditCard } from "lucide-react";
 import { useState } from "react";
+import { Input } from "@/components/ui/input";
 
 export const CartSidebar = () => {
-  const { items, totalItems, totalPrice, removeItem, updateQuantity, clearCart, isOpen, toggleCart } = useCart();
+  const { items, totalItems, totalPrice, discount, appliedPromoCode, removeItem, updateQuantity, clearCart, isOpen, toggleCart, applyPromoCode, checkout } = useCart();
   const { isAuthenticated, user } = useAuth();
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [promoCode, setPromoCode] = useState('');
+
+  const handleApplyPromoCode = async () => {
+    if (!promoCode) return;
+    const result = await applyPromoCode(promoCode);
+    if (result.success) {
+      toast({
+        title: 'Промокод применен',
+        description: `Скидка ${result.discount}% активирована`,
+      });
+    } else {
+      toast({
+        title: 'Ошибка',
+        description: result.error,
+        variant: 'destructive',
+      });
+    }
+  };
 
   const handleCheckout = async () => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !user) {
       toast({
         title: 'Требуется авторизация',
         description: 'Войдите в систему для оформления заказа',
@@ -23,30 +42,23 @@ export const CartSidebar = () => {
       return;
     }
 
-    if (user && user.balance < totalPrice) {
+    setIsProcessing(true);
+    const result = await checkout(user.id);
+    setIsProcessing(false);
+
+    if (result.success) {
       toast({
-        title: 'Недостаточно средств',
-        description: `На балансе ${user.balance}₽, а заказ стоит ${totalPrice}₽`,
+        title: 'Заказ оформлен!',
+        description: `Заказ на сумму ${totalPrice * (1 - discount / 100)}₽ принят в обработку`,
+      });
+      toggleCart();
+    } else {
+      toast({
+        title: 'Ошибка',
+        description: result.error,
         variant: 'destructive',
       });
-      return;
     }
-
-    setIsProcessing(true);
-
-    // Simulate order processing
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    // Clear cart and show success
-    clearCart();
-    
-    toast({
-      title: 'Заказ оформлен!',
-      description: `Заказ на сумму ${totalPrice}₽ принят в обработку`,
-    });
-    
-    toggleCart();
-    setIsProcessing(false);
   };
 
   return (
@@ -77,7 +89,6 @@ export const CartSidebar = () => {
             </div>
           ) : (
             <>
-              {/* Cart Items */}
               <div className="flex-1 space-y-4 overflow-y-auto">
                 {items.map((item) => (
                   <div key={item.id} className="glassmorphism p-4 rounded-xl">
@@ -87,11 +98,9 @@ export const CartSidebar = () => {
                         alt={item.name}
                         className="w-16 h-16 rounded-lg object-cover"
                       />
-                      
                       <div className="flex-1 min-w-0">
                         <h4 className="font-medium text-foreground truncate">{item.name}</h4>
                         <p className="text-sm text-muted-foreground">{item.category}</p>
-                        
                         <div className="flex items-center justify-between mt-2">
                           <div className="flex items-center space-x-2">
                             <button
@@ -100,9 +109,7 @@ export const CartSidebar = () => {
                             >
                               <Minus className="w-3 h-3" />
                             </button>
-                            
                             <span className="w-8 text-center font-medium">{item.quantity}</span>
-                            
                             <button
                               onClick={() => updateQuantity(item.id, item.quantity + 1)}
                               className="w-8 h-8 rounded-full glassmorphism flex items-center justify-center hover:bg-muted/50 transition-colors"
@@ -110,7 +117,6 @@ export const CartSidebar = () => {
                               <Plus className="w-3 h-3" />
                             </button>
                           </div>
-                          
                           <button
                             onClick={() => removeItem(item.id)}
                             className="p-2 text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
@@ -118,7 +124,6 @@ export const CartSidebar = () => {
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
-                        
                         <div className="flex items-center justify-between mt-2">
                           <span className="text-sm text-muted-foreground">
                             {item.price}₽ × {item.quantity}
@@ -133,28 +138,60 @@ export const CartSidebar = () => {
                 ))}
               </div>
 
-              {/* Cart Summary */}
               <div className="border-t border-glass-border pt-4 space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <Input
+                      placeholder="Введите промокод"
+                      value={promoCode}
+                      onChange={(e) => setPromoCode(e.target.value)}
+                      className="glassmorphism"
+                      disabled={isProcessing}
+                    />
+                    <AnimatedButton
+                      variant="primary"
+                      size="sm"
+                      onClick={handleApplyPromoCode}
+                      disabled={isProcessing || !promoCode}
+                    >
+                      Применить
+                    </AnimatedButton>
+                  </div>
+                  {appliedPromoCode && (
+                    <p className="text-sm text-success">
+                      Промокод "{appliedPromoCode}" применен (-{discount}%)
+                    </p>
+                  )}
+                </div>
                 <div className="flex items-center justify-between">
                   <span className="text-lg font-medium">Итого:</span>
-                  <span className="text-2xl font-bold bg-gradient-accent bg-clip-text text-transparent">
-                    {totalPrice}₽
-                  </span>
+                  <div className="flex items-baseline space-x-2">
+                    {discount > 0 && (
+                      <span className="text-sm text-muted-foreground line-through">
+                        {totalPrice}₽
+                      </span>
+                    )}
+                    <span className="text-2xl font-bold bg-gradient-accent bg-clip-text text-transparent">
+                      {totalPrice * (1 - discount / 100)}₽
+                    </span>
+                  </div>
                 </div>
-
                 {isAuthenticated && user && (
                   <div className="glassmorphism p-3 rounded-lg">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">Ваш баланс:</span>
-                      <span className={`font-medium ${
-                        user.balance >= totalPrice ? 'text-success' : 'text-destructive'
-                      }`}>
+                      <span
+                        className={`font-medium ${
+                          user.balance >= totalPrice * (1 - discount / 100)
+                            ? 'text-success'
+                            : 'text-destructive'
+                        }`}
+                      >
                         {user.balance}₽
                       </span>
                     </div>
                   </div>
                 )}
-
                 <div className="space-y-2">
                   <AnimatedButton
                     variant="primary"
@@ -165,7 +202,6 @@ export const CartSidebar = () => {
                     <CreditCard className="w-4 h-4 mr-2" />
                     {isProcessing ? 'Обработка...' : 'Оформить заказ'}
                   </AnimatedButton>
-                  
                   {items.length > 0 && (
                     <AnimatedButton
                       variant="glass"
