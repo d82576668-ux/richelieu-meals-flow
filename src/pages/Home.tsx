@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { Header } from '@/components/Header';
 import { MealCard } from '@/components/MealCard';
 import { AuthModal } from '@/components/AuthModal';
+import { CartSidebar } from '@/components/CartSidebar';
 import { LiquidGlassCard } from '@/components/ui/liquid-glass-card';
 import { AnimatedButton } from '@/components/ui/animated-button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
+import { useCart } from '@/hooks/useCart';
 import { useToast } from '@/hooks/use-toast';
 import { Search, Filter, Star, TrendingUp, ChefHat } from 'lucide-react';
 
@@ -90,6 +92,7 @@ const categories = ['Все', 'Супы', 'Горячие блюда', 'Сала
 
 export const Home = () => {
   const { user, isAuthenticated, isLoading } = useAuth();
+  const { addItem } = useCart();
   const { toast } = useToast();
   const [authModal, setAuthModal] = useState<{ isOpen: boolean; defaultTab: 'login' | 'register' }>({
     isOpen: false,
@@ -122,6 +125,9 @@ export const Home = () => {
   };
 
   const handleAddToCart = async (mealId: string) => {
+    const meal = mockMeals.find(m => m.id === mealId);
+    if (!meal) return;
+
     if (!isAuthenticated) {
       toast({
         title: 'Требуется авторизация',
@@ -132,10 +138,17 @@ export const Home = () => {
       return;
     }
 
-    setCart(prev => [...prev, mealId]);
+    addItem({
+      id: meal.id,
+      name: meal.name,
+      price: meal.price,
+      image: meal.image,
+      category: meal.category,
+    });
+
     toast({
       title: 'Добавлено в корзину!',
-      description: 'Блюдо успешно добавлено в вашу корзину',
+      description: `${meal.name} добавлено в корзину`,
     });
   };
 
@@ -309,6 +322,9 @@ export const Home = () => {
         onClose={() => setAuthModal({ ...authModal, isOpen: false })}
         defaultTab={authModal.defaultTab}
       />
+
+      {/* Cart Sidebar */}
+      <CartSidebar />
     </div>
   );
 };
