@@ -5,6 +5,7 @@ import { useState } from "react";
 import { User, Menu, X, Wallet, ShoppingCart } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 import { Link, useLocation } from "react-router-dom";
+import { BalanceTopUp } from "@/components/BalanceTopUp";
 
 interface HeaderProps {
   user?: {
@@ -24,7 +25,6 @@ export const Header = ({ user, onAuthAction }: HeaderProps) => {
     <header className="fixed top-0 left-0 right-0 z-50 glassmorphism border-b border-glass-border">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
-          {/* Logo */}
           <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
             <div className="w-10 h-10 bg-gradient-primary rounded-xl flex items-center justify-center">
               <span className="text-primary-foreground font-bold text-lg">RL</span>
@@ -37,18 +37,17 @@ export const Header = ({ user, onAuthAction }: HeaderProps) => {
             </div>
           </Link>
 
-          {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6">
-            <Link 
-              to="/" 
+            <Link
+              to="/"
               className={`text-foreground hover:text-primary transition-colors ${
                 location.pathname === '/' ? 'text-primary font-medium' : ''
               }`}
             >
               Каталог
             </Link>
-            <Link 
-              to="/profile" 
+            <Link
+              to="/profile"
               className={`text-foreground hover:text-primary transition-colors ${
                 location.pathname === '/profile' ? 'text-primary font-medium' : ''
               }`}
@@ -57,9 +56,7 @@ export const Header = ({ user, onAuthAction }: HeaderProps) => {
             </Link>
           </nav>
 
-          {/* User Section */}
           <div className="flex items-center space-x-4">
-            {/* Cart Button */}
             <button
               onClick={toggleCart}
               className="relative p-2 hover:bg-muted rounded-lg transition-colors"
@@ -74,13 +71,10 @@ export const Header = ({ user, onAuthAction }: HeaderProps) => {
 
             {user ? (
               <div className="flex items-center space-x-3">
-                {/* Balance */}
                 <div className="glassmorphism px-3 py-2 rounded-lg flex items-center space-x-2">
                   <Wallet className="w-4 h-4 text-accent" />
                   <span className="text-sm font-medium">{user.balance} ₽</span>
                 </div>
-                
-                {/* User Avatar */}
                 <Link to="/profile" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
                   <Avatar className="w-8 h-8">
                     <AvatarImage src={user.avatar} />
@@ -90,35 +84,21 @@ export const Header = ({ user, onAuthAction }: HeaderProps) => {
                   </Avatar>
                   <span className="hidden sm:block text-sm font-medium">{user.name}</span>
                 </Link>
-                
-                <AnimatedButton 
-                  variant="glass" 
-                  size="sm"
-                  onClick={() => onAuthAction('logout')}
-                >
+                <AnimatedButton variant="glass" size="sm" onClick={() => onAuthAction('logout')}>
                   Выход
                 </AnimatedButton>
               </div>
             ) : (
               <div className="flex items-center space-x-2">
-                <AnimatedButton 
-                  variant="glass" 
-                  size="sm"
-                  onClick={() => onAuthAction('login')}
-                >
+                <AnimatedButton variant="glass" size="sm" onClick={() => onAuthAction('login')}>
                   Вход
                 </AnimatedButton>
-                <AnimatedButton 
-                  variant="primary" 
-                  size="sm"
-                  onClick={() => onAuthAction('register')}
-                >
+                <AnimatedButton variant="primary" size="sm" onClick={() => onAuthAction('register')}>
                   Регистрация
                 </AnimatedButton>
               </div>
             )}
 
-            {/* Mobile Menu Button */}
             <button
               className="md:hidden p-2 hover:bg-muted rounded-lg transition-colors"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -128,12 +108,11 @@ export const Header = ({ user, onAuthAction }: HeaderProps) => {
           </div>
         </div>
 
-        {/* Mobile Navigation */}
         {isMenuOpen && (
           <nav className="md:hidden mt-4 pt-4 border-t border-glass-border">
             <div className="flex flex-col space-y-3">
-              <Link 
-                to="/" 
+              <Link
+                to="/"
                 className={`text-foreground hover:text-primary transition-colors py-2 ${
                   location.pathname === '/' ? 'text-primary font-medium' : ''
                 }`}
@@ -141,8 +120,8 @@ export const Header = ({ user, onAuthAction }: HeaderProps) => {
               >
                 Каталог
               </Link>
-              <Link 
-                to="/profile" 
+              <Link
+                to="/profile"
                 className={`text-foreground hover:text-primary transition-colors py-2 ${
                   location.pathname === '/profile' ? 'text-primary font-medium' : ''
                 }`}
@@ -150,6 +129,11 @@ export const Header = ({ user, onAuthAction }: HeaderProps) => {
               >
                 Профиль
               </Link>
+              {user && (
+                <div className="py-2">
+                  <BalanceTopUp />
+                </div>
+              )}
             </div>
           </nav>
         )}
